@@ -1,11 +1,11 @@
 services:
   postgres:
     image: postgres:latest
-    container_name: darknet-postgres
+    container_name: appcollector-postgres
     hostname: postgres
     restart: unless-stopped
     volumes:
-      - "./database:/var/lib/postgresql/data"
+      - "./postgres_data:/var/lib/postgresql/data"
     environment:
       POSTGRES_USER: $PG_USER
       POSTGRES_PASSWORD: $PG_PASS
@@ -15,9 +15,9 @@ services:
     # ports:
     #  - 5432:5432
     networks:
-      scraper_net:
+      mydocker_network:
         ipv4_address: $CONTAINER_IP_POSTGRES
 
 networks:
-  scraper_net:
-    extrenal: true
+  mydocker_network:
+    external: true

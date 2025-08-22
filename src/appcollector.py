@@ -6,6 +6,8 @@ from typing import Optional
 ####  own classes ####
 from libs.logger import CustomLogger
 from scraper.agentql_scraper import AgentQLPlaywrightScraper
+import database.models
+import database.db_controller as db_controller
 
 
 from libs import misc
@@ -13,29 +15,36 @@ from libs import misc
 logger = CustomLogger("AppCollector")
 HEADLESS=False
 
-def extract_github_project_url(full_url: str) -> str:
+def extract_github_project_url(full_url: str) -> tuple[str, str, str]:
     """
-    Extract the GitHub project URL from a full GitHub file URL using simple string splitting.
+    Extract the GitHub project URL, developer, and name from a full GitHub file URL using simple string splitting.
     
     Example:
     "https://github.com/blockscout/blockscout/blob/master/docker-compose/docker-compose.yml"
-    -> "https://github.com/blockscout/blockscout"
+    -> ("blockscout", "blockscout", "https://github.com/blockscout/blockscout")
     
     Args:
         full_url (str): The full GitHub URL
         
     Returns:
-        str: The extracted project URL, or the original URL if not a GitHub URL
+        tuple[str, str, str]: A tuple containing (developer, name, project_url)
+                             developer is the GitHub username or organization (e.g., "blockscout")
+                             name is the repository name (e.g., "blockscout")
+                             project_url is the extracted project URL, or the original URL if not a GitHub URL
     """
     if not full_url.startswith("https://github.com/"):
-        return full_url
+        # If not a GitHub URL, return empty developer, empty name, and original URL
+        return ("", "", full_url)
     
     # Split by '/' and take first 5 parts: ['https:', '', 'github.com', 'owner', 'repo']
     parts = full_url.split('/')
     if len(parts) >= 5:
-        return '/'.join(parts[:5])  # "https://github.com/owner/repo"
+        project_url = '/'.join(parts[:5])  # "https://github.com/owner/repo"
+        developer = parts[3]  # "owner"
+        name = parts[4]  # "repo"
+        return (developer, name, project_url)
     else:
-        return full_url
+        return ("", "", full_url)
 
 ## init AgentQL scraper
 # Set headless to False to look more human-like
@@ -59,7 +68,7 @@ aql="""
 google_dork="site:github.com inurl:docker-compose.yml"
 google_url="https://www.google.com"
 url_with_dork="https://www.google.com/search?q=site%3Agithub.com+inurl%3Adocker-compose.yml"
-num_pages=2
+num_pages=100
 
 apps = scraper.search_query(url=google_url,
                             search_string=google_dork,
@@ -70,18 +79,34 @@ apps = scraper.search_query(url=google_url,
 if apps:
   logger.info("=== PROCESSING RESULTS ===")
   
-  for page_results in apps:
-    if 'search_results' in page_results:
-      for result in page_results['search_results']:
-        if 'url' in result and result['url']:
-          original_url = result['url']
-          title = result['title']
-          about = result['about']
-          project_url = extract_github_project_url(original_url)
-          logger.info(f"Title:  {title}")
-          logger.info(f"About:  {about}")
-          logger.info(f"URL:  {project_url}")
-          logger.info("---")       
-
+  # Create a single session for all database operations
+  session = db_controller.get_session()
+  try:
+    for page_results in apps:
+      if 'search_results' in page_results:
+        for result in page_results['search_results']:
+          if 'url' in result and result['url']:
+            original_url = result['url']
+            title = result['title']
+            about = result['about']
+            developer, name, project_url = extract_github_project_url(original_url)
+            repo = db_controller.add_or_update_github_repository(session=session,
+                                                          developer=developer,
+                                                          name=name,
+                                                          url=project_url,
+                                                          about=about)
+            logger.info(f"Added/Updated repository: {developer}/{name}")
+    
+    # Commit all changes at once
+    session.commit()
+    logger.info("All repository data committed to database")
+    
+  except Exception as e:
+    logger.error(f"Error processing results: {e}")
+    session.rollback()
+    raise
+  finally:
+    # Always close the session when done
+    session.close()
   logger.info(f"\n=== UNIQUE GITHUB PROJECTS FOUND ===")
 

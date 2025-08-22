@@ -108,21 +108,21 @@ class AgentQLPlaywrightScraper:
     
     # Browser arguments to look more like a real browser
     args = [
-        '--disable-blink-features=AutomationControlled',
-        '--disable-dev-shm-usage',
-        '--disable-ipc-flooding-protection',
-        '--disable-renderer-backgrounding',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-background-timer-throttling',
-        '--disable-features=TranslateUI',
-        '--disable-features=VizDisplayCompositor',
-        '--no-first-run',
-        '--no-default-browser-check',
-        '--no-sandbox',
-        '--disable-web-security',
-        '--disable-extensions-except',
-        '--disable-plugins-discovery',
-        '--start-maximized'
+      '--disable-blink-features=AutomationControlled',
+      '--disable-dev-shm-usage',
+      '--disable-ipc-flooding-protection',
+      '--disable-renderer-backgrounding',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-background-timer-throttling',
+      '--disable-features=TranslateUI',
+      '--disable-features=VizDisplayCompositor',
+      '--no-first-run',
+      '--no-default-browser-check',
+      '--no-sandbox',
+      '--disable-web-security',
+      '--disable-extensions-except',
+      '--disable-plugins-discovery',
+      '--start-maximized'
     ]
     
     # Create context with realistic browser settings
@@ -144,9 +144,9 @@ class AgentQLPlaywrightScraper:
     
     # Get the default page
     if len(self.context.pages) > 0:
-        self.page = self.context.pages[0]
+      self.page = self.context.pages[0]
     else:
-        self.page = self.context.new_page()
+      self.page = self.context.new_page()
     
     # Add anti-detection JavaScript
     self._add_stealth_scripts()
@@ -195,46 +195,46 @@ class AgentQLPlaywrightScraper:
   def _simulate_human_behavior(self):
     """Simulate human-like behavior on the page"""
     try:
-        # Random mouse movements
-        for _ in range(random.randint(2, 5)):
-            x = random.randint(100, 1800)
-            y = random.randint(100, 900)
-            self.page.mouse.move(x, y)
-            time.sleep(random.uniform(0.1, 0.5))
-        
-        # Random scroll
-        scroll_amount = random.randint(100, 500)
-        self.page.evaluate(f"window.scrollBy(0, {scroll_amount})")
-        time.sleep(random.uniform(0.5, 1.5))
-        
-        # Scroll back up a bit
-        scroll_back = random.randint(50, 200)
-        self.page.evaluate(f"window.scrollBy(0, -{scroll_back})")
-        time.sleep(random.uniform(0.3, 1.0))
+      # Random mouse movements
+      for _ in range(random.randint(2, 5)):
+        x = random.randint(100, 1800)
+        y = random.randint(100, 900)
+        self.page.mouse.move(x, y)
+        time.sleep(random.uniform(0.1, 0.5))
+      
+      # Random scroll
+      scroll_amount = random.randint(100, 500)
+      self.page.evaluate(f"window.scrollBy(0, {scroll_amount})")
+      time.sleep(random.uniform(0.5, 1.5))
+      
+      # Scroll back up a bit
+      scroll_back = random.randint(50, 200)
+      self.page.evaluate(f"window.scrollBy(0, -{scroll_back})")
+      time.sleep(random.uniform(0.3, 1.0))
         
     except Exception as e:
-        self.logger.debug(f"Error in human behavior simulation: {e}")
+      self.logger.debug(f"Error in human behavior simulation: {e}")
 
   def _human_type(self, element, text):
     """Type text with human-like delays"""
     try:
-        # Clear the field first
-        element.clear()
-        time.sleep(random.uniform(0.2, 0.5))
-        
-        # Type each character with random delays
-        for char in text:
-            element.type(char)
-            # Random delay between keystrokes (mimics human typing)
-            delay = random.uniform(0.05, 0.3)
-            if char == ' ':
-                delay = random.uniform(0.1, 0.5)  # Longer pause at spaces
-            time.sleep(delay)
+      # Clear the field first
+      element.clear()
+      time.sleep(random.uniform(0.2, 0.5))
+      
+      # Type each character with random delays
+      for char in text:
+        element.type(char)
+        # Random delay between keystrokes (mimics human typing)
+        delay = random.uniform(0.05, 0.3)
+        if char == ' ':
+          delay = random.uniform(0.1, 0.5)  # Longer pause at spaces
+        time.sleep(delay)
             
     except Exception as e:
-        self.logger.debug(f"Error in human typing: {e}")
-        # Fallback to regular fill
-        element.fill(text)
+      self.logger.debug(f"Error in human typing: {e}")
+      # Fallback to regular fill
+      element.fill(text)
 
   def close(self):
     """
@@ -346,7 +346,8 @@ class AgentQLPlaywrightScraper:
                    url: str,
                    search_string: str,
                    query: str,
-                   num_pages: int) -> List[Dict]:
+                   num_pages: int,
+                   agentql_query_timeout:int=60000) -> List[Dict]:
     """
     Given a URL and a search string, 
     this method will look for the search field and button on the page,
@@ -360,7 +361,7 @@ class AgentQLPlaywrightScraper:
       search_string (str): The search query/term to enter in the search field
       query (str): The AgentQL query to run after the search is performed
       num_pages (int): The number of pages to paginate through after the search
-      
+      agentql_query_timeout (int): Timeout for AgentQL queries in milliseconds
     Returns:
       List[Dict]: List of dictionaries containing search results from all pages,
                   or empty list if search failed or no results found
@@ -427,7 +428,13 @@ class AgentQLPlaywrightScraper:
         
         # Wrap the page for AgentQL querying after search
         agql_page = agentql.wrap(self.page)
-
+        if num_pages is None:
+          self.logger.warning("Pagination depth was not defined...reverting it to 1")
+          num_pages = 1
+        self.logger.info(f"###################################################################")
+        self.logger.info(f"Scraping started at {misc.get_current_time()} with timeout of {agentql_query_timeout} for {num_pages} page(s)")
+        self.logger.info(f"Be patient ah!")
+        self.logger.info(f"###################################################################")
         paginated_data = paginate(page=agql_page, 
                                   query=query, 
                                   number_of_pages=num_pages)

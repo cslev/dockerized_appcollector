@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: darknet-postgres
+    hostname: postgres
+    restart: unless-stopped
+    volumes:
+      - "./database:/var/lib/postgresql/data"
+    environment:
+      POSTGRES_USER: $PG_USER
+      POSTGRES_PASSWORD: $PG_PASS
+      POSTGRES_DB: $PG_DB
+      POSTGRES_CONTAINER: postgres
+      POSTGRES_PORT: 5432
+    # ports:
+    #  - 5432:5432
+    networks:
+      scraper_net:
+        ipv4_address: $CONTAINER_IP_POSTGRES
+
+networks:
+  scraper_net:
+    extrenal: true

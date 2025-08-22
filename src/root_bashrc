@@ -1,0 +1,40 @@
+alias agi='apt install'
+alias agu='apt update'
+alias aguu='apt upgrade'
+alias acs='apt search'
+alias agr='apt remove'
+alias agar='apt-get autoremove'
+alias agdu='apt-get dist-upgrade'
+alias afu='apt-file update'
+alias afs='apt-file search'
+alias ls='ls --color=auto'
+alias grep='grep --color=auto'
+
+declare -A colors
+colors=(
+		[1]="\033[1;31m"  # red
+		[2]="\033[1;32m"  # green
+		[3]="\033[1;33m"  # brown
+		[4]="\033[1;34m"  # blue
+		[5]="\033[1;35m"  # purple
+		[6]="\033[1;36m"  # cyan
+        [7]="\033[0;37m"  # light gray
+        [8]="\033[0;90m"  # gray
+		[9]="\033[0;0m"   # white
+       )
+num_of_colors=${#colors[@]}
+rnd_color=$(( $RANDOM % $num_of_colors +1 ))
+hcolor_green=$(echo -e ${colors[2]})
+hcolor_blue=$(echo -e ${colors[4]})
+hcolor_white=$(echo -e ${colors[9]})
+
+rev_arrow=$(echo -e "\u21b3")
+case $TERM in xterm*|rxvt|Eterm|eterm|cygwin)
+    PS1='\[${rnd_color}\][APPCOLLECTOR]${debian_chroot:+($debian_chroot)} \[${hcolor_green}\] \u \[${hcolor_blue}\]\w\n\[${hcolor_white}\]${rev_arrow} \[${hcolor_green}\] \$\[\033[00m\] '
+  ;;
+esac
+
+
+#enable UTF-8 so we can see fine chinese characters in the terminal
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
